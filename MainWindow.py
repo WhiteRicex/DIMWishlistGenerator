@@ -25,6 +25,8 @@ import sqlite3
 import pickle
 import shutil
 
+import unicodedata
+
 from ItemSlot import ItemSlot
 from WeaponDisplay import WeaponDisplay
 
@@ -214,10 +216,25 @@ class MainWindow(QMainWindow):
         inputList = self.inputTextBox.toPlainText().split("\n")
 
         outputList = []
+        outputListName = []
 
         for item in inputList:
-            outputs = [key for key, value in self.weapon_dict.items() if value == item]
+            #outputs = [key for key, value in self.weapon_dict.items() if str(value).lower() == item.lower()]
+            outputs = [key for key, value in self.weapon_dict.items() if 
+                       "".join(c for c in unicodedata.normalize('NFD', str(value).lower()) if unicodedata.category(c) != 'Mn') == 
+                       "".join(c for c in unicodedata.normalize('NFD', item.lower().replace("\"", "")) if unicodedata.category(c) != 'Mn')]
+            if len(outputs) == 0:
+                if item.lower() != "Brave Version\"".lower():
+                    print("couldnt find", item)
             outputList.extend(list(map(str,outputs)))
+
+
+            outputsNames = [value for key, value in self.weapon_dict.items() if 
+                       "".join(c for c in unicodedata.normalize('NFD', str(value).lower()) if unicodedata.category(c) != 'Mn') == 
+                       "".join(c for c in unicodedata.normalize('NFD', item.lower().replace("\"", "")) if unicodedata.category(c) != 'Mn')]
+            outputListName.extend(list(map(str,outputsNames)))
+
+        print("\n".join(outputListName))
 
         outputListString = "dimwishlist:item="+"\ndimwishlist:item=".join(outputList)
 
