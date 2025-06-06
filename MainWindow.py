@@ -26,6 +26,7 @@ import pickle
 import shutil
 
 import unicodedata
+import pygsheets
 
 from ItemSlot import ItemSlot
 from WeaponDisplay import WeaponDisplay
@@ -37,6 +38,45 @@ class MainWindow(QMainWindow):
         self.baseURL = "https://www.bungie.net"
         self.APIKey = ""
         self.setWindowTitle("DIM Wishlist Generator")
+
+        print("Connecting to google Sheet")
+
+        google = pygsheets.authorize(client_secret="Secret.json")
+        spreadSheet = google.open("Copy of Destiny 2: Endgame Analysis 2")
+
+        # Shotguns, Snipers, Fusions, BGLs, HGLs, Autos, HCs < all have special weapon types that need to be specifically accounted for
+        weaponsToCheck = ["Glaives", "Traces", "Rocket Sidearms", "LMGs", "Swords", "Rockets", "LFRs", "Bows", "Pulses", "Scouts", "Sidearms", "SMGs"]
+
+        self.bestWeapons = []
+
+        print("Grabbing best weapons")
+
+        self.CheckWeapons(spreadSheet, weaponsToCheck, None) # all non specific weapons
+
+        self.CheckWeapons(spreadSheet, ["Shotguns"], ["Slug"]) # only slugs
+        self.CheckWeapons(spreadSheet, ["Shotguns"], ["Slug"], True) # all other shotguns
+
+        self.CheckWeapons(spreadSheet, ["Snipers"], ["Rapid"]) # only rapid snipers
+        self.CheckWeapons(spreadSheet, ["Snipers"], ["Aggressive"]) # only aggressive snipers
+
+        self.CheckWeapons(spreadSheet, ["Fusions"], ["Rapid"]) # only rapid fusions
+
+        self.CheckWeapons(spreadSheet, ["BGLs"], ["Area Denial"]) # only aread denial
+        self.CheckWeapons(spreadSheet, ["BGLs"], ["Wave"]) # only wave
+        self.CheckWeapons(spreadSheet, ["BGLs"], ["Area Denial", "Wave"], True) # all other BGLs
+
+        self.CheckWeapons(spreadSheet, ["HGLs"], ["Compressed Wave"]) # only compressed wave HGLs
+        self.CheckWeapons(spreadSheet, ["HGLs"], ["Compressed Wave"], True) # all other HGLs
+
+        self.CheckWeapons(spreadSheet, ["Autos"], ["Support"]) # only support autos
+        self.CheckWeapons(spreadSheet, ["Autos"], ["Support"], True) # all other autos
+
+        self.CheckWeapons(spreadSheet, ["HCs"], ["Heavy Burst"]) # only burst HCs
+        self.CheckWeapons(spreadSheet, ["HCs"], ["Heavy Burst"], True) # all other HCs
+
+        print("Cleaning best weapons")
+
+        self.bestWeapons = [weapon for weapon in self.bestWeapons if weapon != "None"]
 
         with open("Credentials.txt", "r") as creds:
             self.APIKey = creds.readline()
@@ -92,6 +132,26 @@ class MainWindow(QMainWindow):
 
         #Get Data
         self.CheckForUpdates()
+
+    def CheckWeapons(self, spreadSheet, weaponsToCheck, weaponTypeFilter, invert = False):
+        for weaponList in weaponsToCheck:
+            weaponSheet = spreadSheet.worksheet_by_title(weaponList)
+            weaponData = weaponSheet.get_values_batch(["B3:B1000","C3:C1000","D3:D1000"])
+
+            weaponConvert = list(zip(
+                [word[0] for word in weaponData[0]], # name
+                [word[0] for word in weaponData[1]], # element
+                [word[0] for word in weaponData[2]])) # weapon type
+            
+            if weaponTypeFilter != None and len(weaponTypeFilter) > 0:
+                weaponConvert = [wep for wep in weaponConvert if (wep[2] not in weaponTypeFilter if invert else (wep[2] in weaponTypeFilter))]
+
+            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Kinetic" if name != "Ideal"), None)).replace("BRAVE version", ""))
+            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Strand"  if name != "Ideal"), None)).replace("BRAVE version", ""))
+            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Stasis"  if name != "Ideal"), None)).replace("BRAVE version", ""))
+            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Solar"   if name != "Ideal"), None)).replace("BRAVE version", ""))
+            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Arc"     if name != "Ideal"), None)).replace("BRAVE version", ""))
+            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Void"    if name != "Ideal"), None)).replace("BRAVE version", ""))
 
     def CheckForUpdates(self):
         self.headers = {"X-API-Key":self.APIKey}
@@ -198,6 +258,7 @@ class MainWindow(QMainWindow):
                 self.weapon_dict[itemHash] = self.all_data["DestinyInventoryItemDefinition"][itemHash]["displayProperties"]["name"]
 
         self.outputTextBox.setText("\n".join(self.weapon_dict.values()))
+        self.inputTextBox.setText("\n".join(self.bestWeapons))
 
         return
         x = 0
