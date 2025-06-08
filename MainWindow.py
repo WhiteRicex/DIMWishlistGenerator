@@ -76,8 +76,6 @@ class MainWindow(QMainWindow):
 
         print("Cleaning best weapons")
 
-        self.bestWeapons = [weapon for weapon in self.bestWeapons if weapon != "None"]
-
         with open("Credentials.txt", "r") as creds:
             self.APIKey = creds.readline()
 
@@ -144,14 +142,28 @@ class MainWindow(QMainWindow):
                 [word[0] for word in weaponData[2]])) # weapon type
             
             if weaponTypeFilter != None and len(weaponTypeFilter) > 0:
-                weaponConvert = [wep for wep in weaponConvert if (wep[2] not in weaponTypeFilter if invert else (wep[2] in weaponTypeFilter))]
+                weaponConvert = [weapon for weapon in weaponConvert if (weapon[2] not in weaponTypeFilter if invert else (weapon[2] in weaponTypeFilter))]
 
-            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Kinetic" if name != "Ideal"), None)).replace("BRAVE version", ""))
-            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Strand"  if name != "Ideal"), None)).replace("BRAVE version", ""))
-            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Stasis"  if name != "Ideal"), None)).replace("BRAVE version", ""))
-            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Solar"   if name != "Ideal"), None)).replace("BRAVE version", ""))
-            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Arc"     if name != "Ideal"), None)).replace("BRAVE version", ""))
-            self.bestWeapons.append(str(next((name for name, element, weaponType in weaponConvert if element == "Void"    if name != "Ideal"), None)).replace("BRAVE version", ""))
+            # TODO: Condense this garbage SMFH
+            kinetic = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Kinetic" if name != "Ideal"]
+            strand  = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Strand" if name != "Ideal"]
+            stasis  = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Stasis" if name != "Ideal"]
+            solar   = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Solar" if name != "Ideal"]
+            arc     = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Arc" if name != "Ideal"]
+            void    = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Void" if name != "Ideal"]
+
+            if kinetic:
+                self.bestWeapons.append(kinetic[0])
+            if strand:
+                self.bestWeapons.append(strand[0])
+            if stasis:
+                self.bestWeapons.append(stasis[0])
+            if solar:
+                self.bestWeapons.append(solar[0])
+            if arc:
+                self.bestWeapons.append(arc[0])
+            if void:
+                self.bestWeapons.append(void[0])
 
     def CheckForUpdates(self):
         self.headers = {"X-API-Key":self.APIKey}
@@ -277,25 +289,18 @@ class MainWindow(QMainWindow):
         inputList = self.inputTextBox.toPlainText().split("\n")
 
         outputList = []
-        outputListName = []
 
-        for item in inputList:
-            #outputs = [key for key, value in self.weapon_dict.items() if str(value).lower() == item.lower()]
-            outputs = [key for key, value in self.weapon_dict.items() if 
-                       "".join(c for c in unicodedata.normalize('NFD', str(value).lower()) if unicodedata.category(c) != 'Mn') == 
-                       "".join(c for c in unicodedata.normalize('NFD', item.lower().replace("\"", "")) if unicodedata.category(c) != 'Mn')]
-            if len(outputs) == 0:
-                if item.lower() != "Brave Version\"".lower():
-                    print("couldnt find", item)
-            outputList.extend(list(map(str,outputs)))
+        # TODO: have the normal and adept be separate as "the call" and "refusal of the call" is triggering a false positive
+        for inputItem in inputList:
+            outputMatches = [(itemID, weaponName) for itemID, weaponName in self.weapon_dict.items() if 
+                             "".join(c for c in unicodedata.normalize('NFD', inputItem.lower()) if unicodedata.category(c) != 'Mn') in
+                             "".join(c for c in unicodedata.normalize('NFD', str(weaponName).lower()) if unicodedata.category(c) != 'Mn')]
 
-
-            outputsNames = [value for key, value in self.weapon_dict.items() if 
-                       "".join(c for c in unicodedata.normalize('NFD', str(value).lower()) if unicodedata.category(c) != 'Mn') == 
-                       "".join(c for c in unicodedata.normalize('NFD', item.lower().replace("\"", "")) if unicodedata.category(c) != 'Mn')]
-            outputListName.extend(list(map(str,outputsNames)))
-
-        print("\n".join(outputListName))
+            outputList.extend(list(map(str,[itemID for itemID, weaponName in outputMatches])))
+            
+            if len(outputMatches) == 0:
+                if inputItem.lower() != "Brave Version\"".lower() and inputItem.lower() != "":
+                    print("couldnt find", inputItem)
 
         outputListString = "dimwishlist:item="+"\ndimwishlist:item=".join(outputList)
 
