@@ -331,6 +331,8 @@ class MainWindow(QMainWindow):
         for item in outputList:
             for perk1 in item[2]:
                 for perk2 in item[3]:
-                    finalWeaponList.append("dimwishlist:items=" + str(item[0]) + "&Perks=" + str(perk1) + "," + str(perk2))
+                    finalWeaponList.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1) + "," + str(perk2))
+                    finalWeaponList.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1))
+                    finalWeaponList.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk2))
 
         self.outputTextBox.setText("\n".join(finalWeaponList))
