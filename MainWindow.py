@@ -44,35 +44,46 @@ class MainWindow(QMainWindow):
         google = pygsheets.authorize(client_secret="Secret.json")
         spreadSheet = google.open("Copy of Destiny 2: Endgame Analysis 2")
 
-        # Shotguns, Snipers, Fusions, BGLs, HGLs, Autos, HCs < all have special weapon types that need to be specifically accounted for
-        weaponsToCheck = ["Glaives", "Traces", "Rocket Sidearms", "LMGs", "Swords", "Rockets", "LFRs", "Bows", "Pulses", "Scouts", "Sidearms", "SMGs"]
-
         self.bestWeapons = []
 
         print("Grabbing best weapons")
 
-        self.CheckWeapons(spreadSheet, weaponsToCheck, None) # all non specific weapons
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["Shotguns"], ["Slug"]) # only slugs
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["Shotguns"], ["Slug"], True) # all other shotguns
 
-        self.CheckWeapons(spreadSheet, ["Shotguns"], ["Slug"]) # only slugs
-        self.CheckWeapons(spreadSheet, ["Shotguns"], ["Slug"], True) # all other shotguns
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["Snipers"], ["Rapid"]) # only rapid snipers
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["Snipers"], ["Aggressive"]) # only aggressive snipers
 
-        self.CheckWeapons(spreadSheet, ["Snipers"], ["Rapid"]) # only rapid snipers
-        self.CheckWeapons(spreadSheet, ["Snipers"], ["Aggressive"]) # only aggressive snipers
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["Fusions"], ["Rapid"]) # only rapid fusions
 
-        self.CheckWeapons(spreadSheet, ["Fusions"], ["Rapid"]) # only rapid fusions
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["BGLs"], ["Area Denial"]) # only aread denial
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["BGLs"], ["Wave"]) # only wave
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["BGLs"], ["Area Denial", "Wave"], True) # all other BGLs
 
-        self.CheckWeapons(spreadSheet, ["BGLs"], ["Area Denial"]) # only aread denial
-        self.CheckWeapons(spreadSheet, ["BGLs"], ["Wave"]) # only wave
-        self.CheckWeapons(spreadSheet, ["BGLs"], ["Area Denial", "Wave"], True) # all other BGLs
+        self.CheckWeapons(spreadSheet, "H", "I", "J", ["Glaives"])
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["Traces"])
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["Rocket Sidearms"])
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["LMGs"])
 
-        self.CheckWeapons(spreadSheet, ["HGLs"], ["Compressed Wave"]) # only compressed wave HGLs
-        self.CheckWeapons(spreadSheet, ["HGLs"], ["Compressed Wave"], True) # all other HGLs
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["HGLs"], ["Compressed Wave"]) # only compressed wave HGLs
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["HGLs"], ["Compressed Wave"], True) # all other HGLs
 
-        self.CheckWeapons(spreadSheet, ["Autos"], ["Support"]) # only support autos
-        self.CheckWeapons(spreadSheet, ["Autos"], ["Support"], True) # all other autos
+        self.CheckWeapons(spreadSheet, "I", "J", "K", ["Swords"])
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["Rockets"])
+        self.CheckWeapons(spreadSheet, "G", "H", "I", ["LFRs"])
 
-        self.CheckWeapons(spreadSheet, ["HCs"], ["Heavy Burst"]) # only burst HCs
-        self.CheckWeapons(spreadSheet, ["HCs"], ["Heavy Burst"], True) # all other HCs
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["Autos"], ["Support"]) # only support autos
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["Autos"], ["Support"], True) # all other autos
+
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["Bows"])
+
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["HCs"], ["Heavy Burst"]) # only burst HCs
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["HCs"], ["Heavy Burst"], True) # all other HCs
+
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["Pulses"])
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["Scouts"])
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["Sidearms"])
+        self.CheckWeapons(spreadSheet, "F", "G", "H", ["SMGs"])
 
         print("Cleaning best weapons")
 
@@ -131,39 +142,43 @@ class MainWindow(QMainWindow):
         #Get Data
         self.CheckForUpdates()
 
-    def CheckWeapons(self, spreadSheet, weaponsToCheck, weaponTypeFilter, invert = False):
+    def CheckWeapons(self, spreadSheet, perk1, perk2, origin, weaponsToCheck, weaponTypeFilter = None, invert = False):
         for weaponList in weaponsToCheck:
             weaponSheet = spreadSheet.worksheet_by_title(weaponList)
-            weaponData = weaponSheet.get_values_batch(["B3:B1000","C3:C1000","D3:D1000"])
+            weaponData = weaponSheet.get_values_batch(["B3:B1000",
+                                                       "C3:C1000",
+                                                       "D3:D1000",
+                                                       perk1+"3:"+perk1+"1000",
+                                                       perk2+"3:"+perk2+"1000",
+                                                       origin+"3:"+origin+"1000"])
 
             weaponConvert = list(zip(
                 [word[0] for word in weaponData[0]], # name
                 [word[0] for word in weaponData[1]], # element
-                [word[0] for word in weaponData[2]])) # weapon type
+                [word[0] for word in weaponData[2]], # weapon type
+                [word[0] for word in weaponData[3]], # perk 1
+                [word[0] for word in weaponData[4]], # perk 2
+                [word[0] for word in weaponData[5]], # origin trait
+                ))
             
             if weaponTypeFilter != None and len(weaponTypeFilter) > 0:
                 weaponConvert = [weapon for weapon in weaponConvert if (weapon[2] not in weaponTypeFilter if invert else (weapon[2] in weaponTypeFilter))]
 
-            # TODO: Condense this garbage SMFH
-            kinetic = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Kinetic" if name != "Ideal"]
-            strand  = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Strand" if name != "Ideal"]
-            stasis  = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Stasis" if name != "Ideal"]
-            solar   = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Solar" if name != "Ideal"]
-            arc     = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Arc" if name != "Ideal"]
-            void    = [str(name).replace("\nBRAVE version", "") for name, element, weaponType in weaponConvert if element == "Void" if name != "Ideal"]
+            kinetic = [(str(name).replace("\nBRAVE version", ""), element, weaponType, perk1, perk2, origin) for name, element, weaponType, perk1, perk2, origin in weaponConvert if element == "Kinetic" if name != "Ideal"]
+            strand  = [(str(name).replace("\nBRAVE version", ""), element, weaponType, perk1, perk2, origin) for name, element, weaponType, perk1, perk2, origin in weaponConvert if element == "Strand" if name != "Ideal"]
+            stasis  = [(str(name).replace("\nBRAVE version", ""), element, weaponType, perk1, perk2, origin) for name, element, weaponType, perk1, perk2, origin in weaponConvert if element == "Stasis" if name != "Ideal"]
+            solar   = [(str(name).replace("\nBRAVE version", ""), element, weaponType, perk1, perk2, origin) for name, element, weaponType, perk1, perk2, origin in weaponConvert if element == "Solar" if name != "Ideal"]
+            arc     = [(str(name).replace("\nBRAVE version", ""), element, weaponType, perk1, perk2, origin) for name, element, weaponType, perk1, perk2, origin in weaponConvert if element == "Arc" if name != "Ideal"]
+            void    = [(str(name).replace("\nBRAVE version", ""), element, weaponType, perk1, perk2, origin) for name, element, weaponType, perk1, perk2, origin in weaponConvert if element == "Void" if name != "Ideal"]
 
-            if kinetic:
-                self.bestWeapons.append(kinetic[0])
-            if strand:
-                self.bestWeapons.append(strand[0])
-            if stasis:
-                self.bestWeapons.append(stasis[0])
-            if solar:
-                self.bestWeapons.append(solar[0])
-            if arc:
-                self.bestWeapons.append(arc[0])
-            if void:
-                self.bestWeapons.append(void[0])
+            self.bestWeapons.append(kinetic[0] if kinetic else None)
+            self.bestWeapons.append(strand[0] if strand else None)
+            self.bestWeapons.append(stasis[0] if stasis else None)
+            self.bestWeapons.append(solar[0] if solar else None)
+            self.bestWeapons.append(arc[0] if arc else None)
+            self.bestWeapons.append(void[0] if void else None)
+            
+            self.bestWeapons = [w for w in self.bestWeapons if w != None]
 
     def CheckForUpdates(self):
         self.headers = {"X-API-Key":self.APIKey}
@@ -264,13 +279,18 @@ class MainWindow(QMainWindow):
 
     def GenDict(self):
         self.weapon_dict = {}
+        self.perks_dict = {}
 
+        # TODO: rewrite with list comprehension
         for itemHash in self.all_data["DestinyInventoryItemDefinition"]:
-            if self.all_data["DestinyInventoryItemDefinition"][itemHash]["itemType"] == 3:
+            if self.all_data["DestinyInventoryItemDefinition"][itemHash]["itemType"] == 3: # itemtype 3 == weapon
                 self.weapon_dict[itemHash] = self.all_data["DestinyInventoryItemDefinition"][itemHash]["displayProperties"]["name"]
 
+            if "itemTypeDisplayName" in self.all_data["DestinyInventoryItemDefinition"][itemHash] and self.all_data["DestinyInventoryItemDefinition"][itemHash]["itemTypeDisplayName"] == "Trait":
+                self.perks_dict[itemHash] = self.all_data["DestinyInventoryItemDefinition"][itemHash]["displayProperties"]["name"]
+
         self.outputTextBox.setText("\n".join(self.weapon_dict.values()))
-        self.inputTextBox.setText("\n".join(self.bestWeapons))
+        self.inputTextBox.setText("\n".join([w[0] for w in self.bestWeapons]))
 
         return
         x = 0
@@ -290,18 +310,27 @@ class MainWindow(QMainWindow):
 
         outputList = []
 
-        # TODO: have the normal and adept be separate as "the call" and "refusal of the call" is triggering a false positive
         for inputItem in inputList:
-            outputMatches = [(itemID, weaponName) for itemID, weaponName in self.weapon_dict.items() if 
-                             "".join(c for c in unicodedata.normalize('NFD', inputItem.lower()) if unicodedata.category(c) != 'Mn') in
+            itemAppend = [(perk1, perk2, origin) for weaponName, element, weaponType, perk1, perk2, origin in self.bestWeapons if weaponName == inputItem]
+
+            outputMatches = [(itemID, weaponName, itemAppend[0][0], itemAppend[0][1], itemAppend[0][2]) for itemID, weaponName in self.weapon_dict.items() if 
+                             "".join(c for c in unicodedata.normalize('NFD', inputItem.lower()) if unicodedata.category(c) != 'Mn') ==
                              "".join(c for c in unicodedata.normalize('NFD', str(weaponName).lower()) if unicodedata.category(c) != 'Mn')]
 
-            outputList.extend(list(map(str,[itemID for itemID, weaponName in outputMatches])))
-            
+            outputMatchesAdept = [(itemID, weaponName, itemAppend[0][0], itemAppend[0][1], itemAppend[0][2]) for itemID, weaponName in self.weapon_dict.items() if 
+                             "".join(c for c in unicodedata.normalize('NFD', inputItem.lower()+" (") if unicodedata.category(c) != 'Mn') in
+                             "".join(c for c in unicodedata.normalize('NFD', str(weaponName).lower()) if unicodedata.category(c) != 'Mn')]
+
+            outputList.extend((itemID, weaponName, [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p1 for p1 in str(perk1).split("\n")]], [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p2 for p2 in str(perk2).split("\n")]]) for itemID, weaponName, perk1, perk2, origin in outputMatches)
+            outputList.extend((itemID, weaponName, [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p1 for p1 in str(perk1).split("\n")]], [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p2 for p2 in str(perk2).split("\n")]]) for itemID, weaponName, perk1, perk2, origin in outputMatchesAdept)
+
             if len(outputMatches) == 0:
-                if inputItem.lower() != "Brave Version\"".lower() and inputItem.lower() != "":
-                    print("couldnt find", inputItem)
+                print("couldnt find:", inputItem)
 
-        outputListString = "dimwishlist:item="+"\ndimwishlist:item=".join(outputList)
+        finalWeaponList = []
+        for item in outputList:
+            for perk1 in item[2]:
+                for perk2 in item[3]:
+                    finalWeaponList.append("dimwishlist:items=" + str(item[0]) + "&Perks=" + str(perk1) + "," + str(perk2))
 
-        self.outputTextBox.setText(outputListString)
+        self.outputTextBox.setText("\n".join(finalWeaponList))
