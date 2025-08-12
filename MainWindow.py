@@ -27,6 +27,7 @@ import shutil
 
 import unicodedata
 import pygsheets
+from requests_oauthlib import OAuth2Session
 
 from ItemSlot import ItemSlot
 from WeaponDisplay import WeaponDisplay
@@ -41,8 +42,14 @@ class MainWindow(QMainWindow):
 
         print("Connecting to google Sheet")
 
+        try:
+            google = pygsheets.authorize(client_secret="Secret.json")
+        except:
+            os.remove("sheets.googleapis.com-python.json")
+            google = pygsheets.authorize(client_secret="Secret.json")
+
         google = pygsheets.authorize(client_secret="Secret.json")
-        spreadSheet = google.open("Copy of Destiny 2: Endgame Analysis 2")
+        spreadSheet = google.open("Copy of Destiny 2: Endgame Analysis 3")
 
         self.bestWeapons = []
 
@@ -128,10 +135,15 @@ class MainWindow(QMainWindow):
 
         #####Bottom Layout#####
         mainLayout.addLayout(bottomLayout)
+        
         exportWishlist = QPushButton("Export Wishlist")
         exportWishlist.clicked.connect(self.ExportWishlist)
         bottomLayout.addWidget(exportWishlist)
-        bottomLayout.addWidget(QPushButton("Load Wishlist"))
+
+        loadWishlist = QPushButton("Load Wishlist")
+        loadWishlist.clicked.connect(self.LoadWishlist)
+        bottomLayout.addWidget(loadWishlist)
+        
         bottomLayout.addWidget(QPushButton("Clear Wishlist"))
 
         #Create Central Widget
@@ -321,18 +333,73 @@ class MainWindow(QMainWindow):
                              "".join(c for c in unicodedata.normalize('NFD', inputItem.lower()+" (") if unicodedata.category(c) != 'Mn') in
                              "".join(c for c in unicodedata.normalize('NFD', str(weaponName).lower()) if unicodedata.category(c) != 'Mn')]
 
-            outputList.extend((itemID, weaponName, [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p1 for p1 in str(perk1).split("\n")]], [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p2 for p2 in str(perk2).split("\n")]]) for itemID, weaponName, perk1, perk2, origin in outputMatches)
-            outputList.extend((itemID, weaponName, [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p1 for p1 in str(perk1).split("\n")]], [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p2 for p2 in str(perk2).split("\n")]]) for itemID, weaponName, perk1, perk2, origin in outputMatchesAdept)
+            outputList.extend((itemID, 
+                               weaponName, 
+                               [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p1 for p1 in str(perk1).split("\n")]], 
+                               [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p2 for p2 in str(perk2).split("\n")]], perk1, perk2) 
+                               for itemID, weaponName, perk1, perk2, origin in outputMatches)
+            outputList.extend((itemID, 
+                               weaponName, 
+                               [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p1 for p1 in str(perk1).split("\n")]], 
+                               [key for key,value in zip(self.perks_dict.keys(), self.perks_dict.values()) if value in [p2 for p2 in str(perk2).split("\n")]], perk1, perk2) 
+                               for itemID, weaponName, perk1, perk2, origin in outputMatchesAdept)
 
             if len(outputMatches) == 0:
                 print("couldnt find:", inputItem)
 
         finalWeaponList = []
+
+        finalWeaponList.append("title:White Rice's Wishlist")
+
         for item in outputList:
+            aegisNotes = "\n//notes:[" + ", ".join(i for i in str(item[4]).split("\n")) + "] [" + ", ".join(i for i in str(item[5]).split("\n")) + "]"
+
+            finalWeaponList.append(aegisNotes)
+
+            doublePerks = []
+            singlePerks = []
+
             for perk1 in item[2]:
+                singlePerks.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1)) # first column match
                 for perk2 in item[3]:
-                    finalWeaponList.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1) + "," + str(perk2))
-                    finalWeaponList.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1))
-                    finalWeaponList.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk2))
+                    singlePerks.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk2)) # second column match
+                    
+                    doublePerks.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1) + "," + str(perk2)) # dual match perk
+
+            for perk1 in item[2]:
+                for perk2 in item[2]:
+                    if perk1 != perk2:
+                        doublePerks.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1) + "," + str(perk2)) # dual match perk
+
+            for perk1 in item[3]:
+                for perk2 in item[3]:
+                    if perk1 != perk2:
+                        doublePerks.append("dimwishlist:item=" + str(item[0]) + "&perks=" + str(perk1) + "," + str(perk2)) # dual match perk
+
+            finalWeaponList.append("\n".join(doublePerks))
+            #finalWeaponList.append("\n".join(singlePerks))
+
+        #finalWeaponList.append("\n")
+
+        #finalWeaponList.append("\n//double perks")
+        #finalWeaponList.append("\n".join(doublePerks))
+        #finalWeaponList.append("\n//single perks")
+        #finalWeaponList.append("\n".join(singlePerks))
 
         self.outputTextBox.setText("\n".join(finalWeaponList))
+
+    def LoadWishlist(self):
+        print("connecting to API")
+
+        client_id = ""
+        client_secret = "67f37821d1974250b2fc2a9fbf26ed27"
+
+        oauth = OAuth2Session(client_id)
+
+        token = oauth.fetch_token("https://www.bungie.net/Platform/App/OAuth/token/", client_secret=client_secret)
+        print("token:", token)
+
+        #https://www.bungie.net/en/oauth/authorize?client_id=67f37821d1974250b2fc2a9fbf26ed27&response_type=code&state=goopygoober
+
+        #resp = oauth.get("url to the resource")
+        resp = oauth.get("https://www.bungie.net/en/oauth/authorize?client_id=67f37821d1974250b2fc2a9fbf26ed27&response_type=code&state=goopygoober")
