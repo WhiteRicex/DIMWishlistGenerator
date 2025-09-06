@@ -160,6 +160,6 @@ cython_debug/
 #.idea/
 
 Res/
-Credentials.txt
-Secret.json
-sheets.googleapis.com-python.json
+googleCredentials.json
+googleToken.json
+
