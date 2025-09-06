@@ -292,7 +292,7 @@ class MainWindow(QMainWindow):
 
 
             # regular weapons - NAME, ELEMENT, FRAME, PERK1, PERK2, ORIGIN, INDEX
-            [self.AegisSheetWeaponType(sheet, 0, 2, 3, 6, 7, 8, 10) for sheet in [filteredWeaponTypes for filteredWeaponTypes in values if filteredWeaponTypes["properties"]["title"] not in ["Glaives", "Rocket Sidearms", "Swords", "Other"]]]
+            [self.AegisSheetWeaponType(sheet, 0, 2, 3, 6, 7, 8, 10) for sheet in [filteredWeaponTypes for filteredWeaponTypes in values if filteredWeaponTypes["properties"]["title"] not in ["Glaives", "Rocket Sidearms", "Traces", "Swords", "Other"]]]
 
             # special cases - because aegis is a freak and makes his shees non-standard
             
@@ -301,6 +301,9 @@ class MainWindow(QMainWindow):
             
             # rocket sidearm
             [self.AegisSheetWeaponType(sheet, 0, 2, -1, 5, 6, 7, 9) for sheet in [filteredWeaponTypes for filteredWeaponTypes in values if filteredWeaponTypes["properties"]["title"] == "Rocket Sidearms"]]
+            
+            # traces
+            [self.AegisSheetWeaponType(sheet, 0, 2, -1, 5, 6, 7, 9) for sheet in [filteredWeaponTypes for filteredWeaponTypes in values if filteredWeaponTypes["properties"]["title"] == "Traces"]]
             
             # sword
             [self.AegisSheetWeaponType(sheet, 0, 2, 3, 7, 8, 9, 11) for sheet in [filteredWeaponTypes for filteredWeaponTypes in values if filteredWeaponTypes["properties"]["title"] == "Swords"]]
@@ -400,7 +403,6 @@ class MainWindow(QMainWindow):
         
         for weapon in self.bestWeapons:
             perk1Hashes = [(hash, perkData) for hash, perkData in self.perks_dict.items() if perkData in str.split(weapon[3], "\n")]
-            print(weapon)
             perk2Hashes = [(hash, perkData) for hash, perkData in self.perks_dict.items() if perkData in str.split(weapon[4], "\n")]
             weaponHashes = [(hash, weaponDict) for hash, weaponDict in self.weapon_dict.items() if str.split(str.lower(weapon[0]), "\n")[0] in str.lower(unidecode(weaponDict))]
 
